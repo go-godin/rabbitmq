@@ -80,7 +80,7 @@ func (c *Subscriber) Subscribe(handler SubscriptionHandler) error {
 
 	deliveries, err := c.channel.Consume(
 		queue.Name,
-		"",
+		c.Subscription.CTag,
 		c.Subscription.AutoAck,
 		c.Subscription.Queue.Exclusive,
 		false,
