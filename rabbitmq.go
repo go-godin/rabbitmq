@@ -2,10 +2,13 @@ package rabbitmq
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/pkg/errors"
 	"github.com/streadway/amqp"
 )
+
+const EnvironmentVariableName = "AMQP_ADDRESS"
 
 type RabbitMQ struct {
 	Connection *amqp.Connection
@@ -17,6 +20,14 @@ func NewRabbitMQ(connectionString string) *RabbitMQ {
 	return &RabbitMQ{
 		URI: connectionString,
 	}
+}
+
+func NewRabbitMQFromEnv() (*RabbitMQ, error) {
+	connection := os.Getenv(EnvironmentVariableName)
+	if connection == "" {
+		return nil, fmt.Errorf("missing AMQP connection string, set %s env variable", EnvironmentVariableName)
+	}
+	return NewRabbitMQ(connection), nil
 }
 
 func (r *RabbitMQ) Connect() (err error) {
