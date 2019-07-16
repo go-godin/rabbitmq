@@ -8,7 +8,7 @@ import (
 	"github.com/streadway/amqp"
 )
 
-type SubscriptionHandler func(delivery amqp.Delivery)
+type SubscriptionHandler func(delivery *amqp.Delivery)
 
 // Subscription defines all data required to setup an AMQP subscription
 // All values, except the ctag are provided by the configuration or inferred by Godin.
