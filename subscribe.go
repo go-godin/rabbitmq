@@ -10,17 +10,17 @@ import (
 
 type SubscriptionHandler func(delivery *amqp.Delivery)
 
-// Subscription defines all data required to setup an AMQP subscription
-// All values, except the ctag are provided by the configuration or inferred by Godin.
+// Subscription defines all data required to setup an AMQP Subscription
+// All values, except the CTag are provided by the configuration or inferred by Godin.
 type Subscription struct {
 	Topic    string            `json:"topic"`
 	Exchange string            `json:"exchange"`
 	AutoAck  bool              `json:"auto_ack"`
-	ctag     string            `json:"-"` // generated
+	CTag     string            `json:"-"` // generated
 	Queue    SubscriptionQueue `json:"queue"`
 }
 
-// SubscriptionQueue configures the queue on which the subscription runs.
+// SubscriptionQueue configures the queue on which the Subscription runs.
 type SubscriptionQueue struct {
 	Name       string `json:"name"`
 	Durable    bool   `json:"durable"`
@@ -30,42 +30,38 @@ type SubscriptionQueue struct {
 }
 
 type handler struct {
-	implementation SubscriptionHandler
+	Implementation SubscriptionHandler
 	done           chan error
-	ctag           string
-	routingKey     string
 }
 
 // Subscriber handles AMQP subscriptions.
 type Subscriber struct {
 	channel      *amqp.Channel
-	subscription *Subscription
-	handlers     []handler
+	Subscription *Subscription
+	Handler      handler
 }
 
-// NewSubscriber returns an AMQP publisher
+// NewSubscriber returns a new Subscriber with auto-generated CTag
 func NewSubscriber(channel *amqp.Channel, subscription *Subscription) Subscriber {
-
-	// generate a unique ctag for the subscriber
 	sub := strings.Replace(subscription.Topic, ".", "_", -1)
 	ctag := fmt.Sprintf("%s_%s", sub, uuid.New().String())
-	subscription.ctag = ctag
+	subscription.CTag = ctag
 
 	return Subscriber{
 		channel:      channel,
-		subscription: subscription,
+		Subscription: subscription,
 	}
 }
 
 // Subscribe will declare the queue defined in the Subscription, bind it to the exchange and start consuming
-// by calling the handler in a goroutine.
+// by calling the Handler in a goroutine.
 func (c *Subscriber) Subscribe(handler SubscriptionHandler) error {
 	queue, err := c.channel.QueueDeclare(
-		c.subscription.Queue.Name,
-		c.subscription.Queue.Durable,
-		c.subscription.Queue.AutoDelete,
-		c.subscription.Queue.Exclusive,
-		c.subscription.Queue.NoWait,
+		c.Subscription.Queue.Name,
+		c.Subscription.Queue.Durable,
+		c.Subscription.Queue.AutoDelete,
+		c.Subscription.Queue.Exclusive,
+		c.Subscription.Queue.NoWait,
 		nil,
 	)
 	if err != nil {
@@ -74,9 +70,9 @@ func (c *Subscriber) Subscribe(handler SubscriptionHandler) error {
 
 	if err = c.channel.QueueBind(
 		queue.Name,
-		c.subscription.Topic,
-		c.subscription.Exchange,
-		c.subscription.Queue.NoWait,
+		c.Subscription.Topic,
+		c.Subscription.Exchange,
+		c.Subscription.Queue.NoWait,
 		nil,
 	); err != nil {
 		return err
@@ -85,52 +81,46 @@ func (c *Subscriber) Subscribe(handler SubscriptionHandler) error {
 	deliveries, err := c.channel.Consume(
 		queue.Name,
 		"",
-		c.subscription.AutoAck,
-		c.subscription.Queue.Exclusive,
+		c.Subscription.AutoAck,
+		c.Subscription.Queue.Exclusive,
 		false,
-		c.subscription.Queue.NoWait,
+		c.Subscription.Queue.NoWait,
 		nil,
 	)
 	if err != nil {
 		return err
 	}
 
-	h := c.setHandler(handler)
-	go c.Handler(deliveries, h)
+	c.setHandler(handler)
+	go c.handle(deliveries, c.Handler)
 
 	return nil
 }
 
-// setHandler installs a SubscriptionHandler to use for this subscription.
-func (c *Subscriber) setHandler(handlerImpl SubscriptionHandler) handler {
+// setHandler installs a SubscriptionHandler to use for this Subscription.
+func (c *Subscriber) setHandler(handlerImpl SubscriptionHandler) {
 	h := handler{
-		routingKey:     c.subscription.Topic,
-		ctag:           c.subscription.ctag,
-		implementation: handlerImpl,
+		Implementation: handlerImpl,
 		done:           make(chan error),
 	}
-	c.handlers = append(c.handlers, h)
-
-	return h
+	c.Handler = h
 }
 
 // Handler is started by Subscribe() as Goroutine. For each received AMQP delivery,
-// it will call the implementation(delivery) to allow business logic for each delivery to run.
-func (c *Subscriber) Handler(deliveries <-chan amqp.Delivery, h handler) {
+// it will call the Implementation(delivery) to allow business logic for each delivery to run.
+func (c *Subscriber) handle(deliveries <-chan amqp.Delivery, h handler) {
 	for d := range deliveries {
-		h.implementation(&d)
+		h.Implementation(&d)
 	}
 	h.done <- nil
 }
 
-// Shutdown will cancel the subscriber by it's ctag. It needs to be registered
-// to a shutdown handler.
+// Shutdown will cancel the subscriber by it's CTag. It needs to be registered
+// to a shutdown Handler.
 func (c *Subscriber) Shutdown() error {
-	for _, h := range c.handlers {
-		if err := c.channel.Cancel(h.ctag, true); err != nil {
-			return err
-		}
-		<-h.done
+	if err := c.channel.Cancel(c.Subscription.CTag, true); err != nil {
+		return err
 	}
+	<-c.Handler.done
 	return nil
 }
