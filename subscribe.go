@@ -118,7 +118,7 @@ func (c *Subscriber) setHandler(handlerImpl SubscriptionHandler) handler {
 // it will call the implementation(delivery) to allow business logic for each delivery to run.
 func (c *Subscriber) Handler(deliveries <-chan amqp.Delivery, h handler) {
 	for d := range deliveries {
-		h.implementation(d)
+		h.implementation(&d)
 	}
 	h.done <- nil
 }
