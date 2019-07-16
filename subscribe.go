@@ -10,7 +10,6 @@ import (
 )
 
 type SubscriptionHandler func(ctx context.Context, delivery *amqp.Delivery)
-type BeforeFunc func(ctx context.Context, delivery *amqp.Delivery) context.Context
 
 // Subscription defines all data required to setup an AMQP Subscription
 // All values, except the CTag are provided by the configuration or inferred by Godin.
@@ -33,7 +32,6 @@ type SubscriptionQueue struct {
 
 type handler struct {
 	Implementation SubscriptionHandler
-	BeforeFunc     BeforeFunc
 	done           chan error
 }
 
@@ -58,7 +56,7 @@ func NewSubscriber(channel *amqp.Channel, subscription *Subscription) Subscriber
 
 // Subscribe will declare the queue defined in the Subscription, bind it to the exchange and start consuming
 // by calling the Handler in a goroutine.
-func (c *Subscriber) Subscribe(handler SubscriptionHandler, beforeFunc BeforeFunc) error {
+func (c *Subscriber) Subscribe(handler SubscriptionHandler) error {
 	queue, err := c.channel.QueueDeclare(
 		c.Subscription.Queue.Name,
 		c.Subscription.Queue.Durable,
@@ -95,7 +93,6 @@ func (c *Subscriber) Subscribe(handler SubscriptionHandler, beforeFunc BeforeFun
 	}
 
 	c.setHandler(handler)
-	c.Handler.BeforeFunc = beforeFunc
 	go c.handle(deliveries, c.Handler)
 
 	return nil
@@ -115,9 +112,6 @@ func (c *Subscriber) setHandler(handlerImpl SubscriptionHandler) {
 func (c *Subscriber) handle(deliveries <-chan amqp.Delivery, h handler) {
 	for d := range deliveries {
 		ctx := context.Background()
-		if c.Handler.BeforeFunc != nil {
-			ctx = c.Handler.BeforeFunc(ctx, &d)
-		}
 		h.Implementation(ctx, &d)
 	}
 	h.done <- nil
