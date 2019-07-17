@@ -9,7 +9,7 @@ import (
 	"github.com/streadway/amqp"
 )
 
-type SubscriptionHandler func(ctx context.Context, delivery *amqp.Delivery)
+type SubscriptionHandler func(ctx context.Context, delivery *Delivery)
 
 // Subscription defines all data required to setup an AMQP Subscription
 // All values, except the CTag are provided by the configuration or inferred by Godin.
@@ -112,7 +112,7 @@ func (c *Subscriber) setHandler(handlerImpl SubscriptionHandler) {
 func (c *Subscriber) handle(deliveries <-chan amqp.Delivery, h handler) {
 	for d := range deliveries {
 		ctx := context.Background()
-		h.Implementation(ctx, &d)
+		h.Implementation(ctx, &Delivery{d})
 	}
 	h.done <- nil
 }
