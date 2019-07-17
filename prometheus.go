@@ -15,11 +15,3 @@ var (
 		Help: "Increased by 1 on every nack on AMQP messages",
 	}, []string{"routing_key", "requeue"})
 )
-
-func IncTransportErrorCounter(routingKey string) {
-	transportError.With("routing_key", routingKey).Add(1)
-}
-
-func DecTransportErrorCounter(routingKey string) {
-	transportError.With("routing_key", routingKey).Add(-1)
-}

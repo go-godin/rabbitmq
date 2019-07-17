@@ -19,3 +19,11 @@ func (d Delivery) NackDelivery(multiple, requeue bool) error {
 	nackCounter.With("routing_key", d.RoutingKey, "requeue", requeueVal).Add(1)
 	return d.Nack(multiple, requeue)
 }
+
+func (d Delivery) IncrementTransportErrorCounter() {
+	transportError.With("routing_key", d.RoutingKey).Add(1)
+}
+
+func (d Delivery) DecrementTransportErrorCounter() {
+	transportError.With("routing_key", d.RoutingKey).Add(-1)
+}
