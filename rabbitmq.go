@@ -12,7 +12,7 @@ const EnvironmentVariableName = "AMQP_ADDRESS"
 
 type RabbitMQ struct {
 	Connection *amqp.Connection
-	Channel    *amqp.Channel
+	Channel    *amqp.Channel // used for setup
 	URI        string
 }
 
@@ -30,23 +30,27 @@ func NewRabbitMQFromEnv() (*RabbitMQ, error) {
 	return NewRabbitMQ(connection), nil
 }
 
-func (r *RabbitMQ) Connect() (err error) {
-	r.Connection, err = amqp.Dial(r.URI)
+func (r *RabbitMQ) Connect() error {
+	conn, err := amqp.Dial(r.URI)
 	if err != nil {
-		return errors.Wrap(err, "failed to connect to RabbitMQ")
+		return err
 	}
+	r.Connection = conn
+
 	return nil
 }
 
-func (r *RabbitMQ) NewChannel() (err error) {
+// NewChannel creates a new amqp.Channel on the current connection
+func (r *RabbitMQ) NewChannel() (channel *amqp.Channel, err error) {
 	if r.Connection == nil {
-		return fmt.Errorf("cannot create channel without a connection")
+		return nil, fmt.Errorf("cannot create channel without a connection")
 	}
-	r.Channel, err = r.Connection.Channel()
+	channel, err = r.Connection.Channel()
 	if err != nil {
-		return errors.Wrap(err, "failed to open AMQP channel")
+		return nil, errors.Wrap(err, "failed to open AMQP channel")
 	}
-	return nil
+
+	return channel, nil
 }
 
 func (r *RabbitMQ) DeclareExchange(name, typ string, durable, autoDelete, internal, noWait bool) (err error) {
@@ -54,4 +58,8 @@ func (r *RabbitMQ) DeclareExchange(name, typ string, durable, autoDelete, intern
 		return errors.Wrap(err, "failed to delcare RabbitMQ exchange")
 	}
 	return nil
+}
+
+func (r *RabbitMQ) Close() error {
+	return r.Connection.Close()
 }

@@ -3,6 +3,7 @@ package rabbitmq
 import (
 	"context"
 	"fmt"
+	"github.com/pkg/errors"
 	"strings"
 
 	"github.com/google/uuid"
@@ -57,6 +58,10 @@ func NewSubscriber(channel *amqp.Channel, subscription *Subscription) Subscriber
 // Subscribe will declare the queue defined in the Subscription, bind it to the exchange and start consuming
 // by calling the Handler in a goroutine.
 func (c *Subscriber) Subscribe(handler SubscriptionHandler) error {
+	err := c.channel.ExchangeDeclare(c.Subscription.Exchange, "topic", true, false, false, false, nil)
+	if err != nil {
+		return errors.Wrap(err, fmt.Sprintf("failed to declare exchange '%s'", c.Subscription.Exchange))
+	}
 	queue, err := c.channel.QueueDeclare(
 		c.Subscription.Queue.Name,
 		c.Subscription.Queue.Durable,
