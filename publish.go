@@ -11,11 +11,10 @@ import (
 )
 
 type Publishing struct {
-	Topic           string     `json:"topic"`
-	Exchange        string     `json:"exchange"`
-	DeliveryMode    uint8      `json:"delivery_mode"`
-	Headers         amqp.Table `json:"-"`
-	ProtobufMessage string     `json:"protobuf_message"` // unused in this package, workaround for Godin
+	Topic           string `json:"topic"`
+	Exchange        string `json:"exchange"`
+	DeliveryMode    uint8  `json:"delivery_mode"`
+	ProtobufMessage string `json:"protobuf_message"` // unused in this package, workaround for Godin
 }
 
 type Publisher interface {
@@ -49,12 +48,12 @@ func (p publisher) Publish(ctx context.Context, event interface{}) error {
 
 	// ensure the requestId is passed along
 	requestId := ctx.Value("requestId")
-	p.Publishing.Headers = amqp.Table{
+	headers := amqp.Table{
 		"requestId": requestId,
 	}
 
 	publishing := amqp.Publishing{
-		Headers:      p.Publishing.Headers,
+		Headers:      headers,
 		ContentType:  "application/octet-stream",
 		DeliveryMode: p.Publishing.DeliveryMode,
 		Priority:     0,
