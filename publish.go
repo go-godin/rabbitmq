@@ -11,10 +11,10 @@ import (
 )
 
 type Publishing struct {
-	Topic        string
-	Exchange     string
-	DeliveryMode uint8
-	Headers      amqp.Table
+	Topic        string     `json:"topic"`
+	Exchange     string     `json:"exchange"`
+	DeliveryMode uint8      `json:"delivery_mode"`
+	Headers      amqp.Table `json:"-"`
 }
 
 type Publisher interface {
