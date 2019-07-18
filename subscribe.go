@@ -3,8 +3,9 @@ package rabbitmq
 import (
 	"context"
 	"fmt"
-	"github.com/pkg/errors"
 	"strings"
+
+	"github.com/pkg/errors"
 
 	"github.com/google/uuid"
 	"github.com/streadway/amqp"
@@ -15,11 +16,11 @@ type SubscriptionHandler func(ctx context.Context, delivery *Delivery)
 // Subscription defines all data required to setup an AMQP Subscription
 // All values, except the CTag are provided by the configuration or inferred by Godin.
 type Subscription struct {
-	Topic    string            `json:"topic"`
-	Exchange string            `json:"exchange"`
-	AutoAck  bool              `json:"auto_ack"`
+	Topic    string            `json:"topic" mapstructure:"topic"`
+	Exchange string            `json:"exchange" mapstructure:"exchange"`
+	AutoAck  bool              `json:"auto_ack" mapstructure:"auto_ack"`
 	CTag     string            `json:"-"` // generated
-	Queue    SubscriptionQueue `json:"queue"`
+	Queue    SubscriptionQueue `json:"queue" mapstructure:"queue"`
 }
 
 // SubscriptionQueue configures the queue on which the Subscription runs.

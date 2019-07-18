@@ -11,9 +11,9 @@ import (
 )
 
 type Publishing struct {
-	Topic           string `json:"topic"`
-	Exchange        string `json:"exchange"`
-	DeliveryMode    uint8  `json:"delivery_mode"`
+	Topic           string `json:"topic" mapstructure:"topic"`
+	Exchange        string `json:"exchange" mapstructure:"exchange"`
+	DeliveryMode    uint8  `json:"delivery_mode" mapstructure:"delivery_mode"`
 	ProtobufMessage string `json:"protobuf_message" mapstructure:"protobuf_message"` // unused in this package, workaround for Godin
 }
 
