@@ -6,6 +6,7 @@ import (
 
 	"github.com/pkg/errors"
 
+	"github.com/go-godin/grpc-metadata"
 	"github.com/golang/protobuf/proto"
 	"github.com/streadway/amqp"
 )
@@ -47,7 +48,7 @@ func (p publisher) Publish(ctx context.Context, event interface{}) error {
 	}
 
 	// ensure the requestId is passed along
-	requestId := ctx.Value("requestId")
+	requestId := grpc_metadata.GetRequestID(ctx)
 	headers := amqp.Table{
 		"requestId": requestId,
 	}
