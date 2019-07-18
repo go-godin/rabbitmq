@@ -14,7 +14,7 @@ type Publishing struct {
 	Topic           string `json:"topic"`
 	Exchange        string `json:"exchange"`
 	DeliveryMode    uint8  `json:"delivery_mode"`
-	ProtobufMessage string `json:"protobuf_message"` // unused in this package, workaround for Godin
+	ProtobufMessage string `json:"protobuf_message" mapstructure:"protobuf_message"` // unused in this package, workaround for Godin
 }
 
 type Publisher interface {
