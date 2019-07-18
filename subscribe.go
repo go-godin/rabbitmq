@@ -12,6 +12,7 @@ import (
 )
 
 type SubscriptionHandler func(ctx context.Context, delivery *Delivery)
+type SubscriberDecoder func(delivery *Delivery) (decoded interface{}, err error)
 
 // Subscription defines all data required to setup an AMQP Subscription
 // All values, except the CTag are provided by the configuration or inferred by Godin.
