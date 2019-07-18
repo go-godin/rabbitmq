@@ -11,10 +11,11 @@ import (
 )
 
 type Publishing struct {
-	Topic        string     `json:"topic"`
-	Exchange     string     `json:"exchange"`
-	DeliveryMode uint8      `json:"delivery_mode"`
-	Headers      amqp.Table `json:"-"`
+	Topic           string     `json:"topic"`
+	Exchange        string     `json:"exchange"`
+	DeliveryMode    uint8      `json:"delivery_mode"`
+	Headers         amqp.Table `json:"-"`
+	ProtobufMessage string     `json:"protobuf_message"` // unused in this package, workaround for Godin
 }
 
 type Publisher interface {
@@ -23,11 +24,11 @@ type Publisher interface {
 
 type publisher struct {
 	channel    *amqp.Channel
-	Publishing Publishing
+	Publishing *Publishing
 }
 
 // NewPublisher returns an AMQP publisher
-func NewPublisher(channel *amqp.Channel, publishing Publishing) publisher {
+func NewPublisher(channel *amqp.Channel, publishing *Publishing) publisher {
 	return publisher{
 		channel:    channel,
 		Publishing: publishing,
