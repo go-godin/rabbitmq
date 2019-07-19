@@ -17,11 +17,12 @@ type SubscriberDecoder func(delivery *Delivery) (decoded interface{}, err error)
 // Subscription defines all data required to setup an AMQP Subscription
 // All values, except the CTag are provided by the configuration or inferred by Godin.
 type Subscription struct {
-	Topic    string            `json:"topic" mapstructure:"topic"`
-	Exchange string            `json:"exchange" mapstructure:"exchange"`
-	AutoAck  bool              `json:"auto_ack" mapstructure:"auto_ack"`
-	CTag     string            `json:"-"` // generated
-	Queue    SubscriptionQueue `json:"queue" mapstructure:"queue"`
+	Topic         string            `json:"topic" mapstructure:"topic"`
+	Exchange      string            `json:"exchange" mapstructure:"exchange"`
+	AutoAck       bool              `json:"auto_ack" mapstructure:"auto_ack"`
+	CTag          string            `json:"-"` // generated
+	Queue         SubscriptionQueue `json:"queue" mapstructure:"queue"`
+	PrefetchCount int               `json:"prefetch_count" mapstructure:"prefetch_count"`
 }
 
 // SubscriptionQueue configures the queue on which the Subscription runs.
@@ -64,6 +65,8 @@ func (c *Subscriber) Subscribe(handler SubscriptionHandler) error {
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("failed to declare exchange '%s'", c.Subscription.Exchange))
 	}
+
+	// ensure the queue exists
 	queue, err := c.channel.QueueDeclare(
 		c.Subscription.Queue.Name,
 		c.Subscription.Queue.Durable,
@@ -76,6 +79,7 @@ func (c *Subscriber) Subscribe(handler SubscriptionHandler) error {
 		return err
 	}
 
+	// establish exchange =topic=> queue binding
 	if err = c.channel.QueueBind(
 		queue.Name,
 		c.Subscription.Topic,
@@ -86,6 +90,12 @@ func (c *Subscriber) Subscribe(handler SubscriptionHandler) error {
 		return err
 	}
 
+	// channel prefetch-count
+	if err := c.channel.Qos(c.Subscription.PrefetchCount, 0, false); err != nil {
+		return err
+	}
+
+	// start consuming
 	deliveries, err := c.channel.Consume(
 		queue.Name,
 		c.Subscription.CTag,
