@@ -3,12 +3,11 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/gogo/protobuf/proto"
 	"time"
 
 	"github.com/go-godin/log"
 
-	"github.com/assembla/cony"
+	amqp "github.com/assembla/cony"
 	"github.com/go-godin/rabbitmq"
 )
 
@@ -25,21 +24,28 @@ func main() {
 
 	logger = log.NewLoggerFromEnv()
 
-	// setup AMQP connections
-	produceConnection := cony.NewClient(cony.URL(DSN))
-	consumeConnection := cony.NewClient(cony.URL(DSN))
-	defer produceConnection.Close()
-	defer consumeConnection.Close()
+	// AMQP consumers
+	{
+		consumeConnection := amqp.NewClient(amqp.URL(DSN))
+		defer consumeConnection.Close()
 
-	// setup consumers
-	someTopicConsumer = rabbitmq.NewConsumer(consumeConnection, SomeExchangeName, ServiceQueueName, SomeTopic)
-	logger.Info(fmt.Sprintf("subscribed to topic '%s'", SomeTopic))
-	go consumeAMQP(consumeConnection)
+		// some.topic
+		someTopicConsumer = rabbitmq.NewConsumer(consumeConnection, SomeExchangeName, ServiceQueueName, SomeTopic)
+		logger.Info(fmt.Sprintf("subscribed to topic '%s'", SomeTopic))
 
-	// setup producers
-	someTopicProducer = rabbitmq.NewProducer(produceConnection, SomeExchangeName, SomeTopic)
-	produceConnection.Publish(someTopicProducer.Publisher)
-	go produceAMQP(produceConnection)
+		go consumeAMQP(consumeConnection)
+	}
+
+	// AMQP producers
+	{
+		produceConnection := amqp.NewClient(amqp.URL(DSN))
+		defer produceConnection.Close()
+
+		someTopicProducer = rabbitmq.NewProducer(produceConnection, SomeExchangeName, SomeTopic)
+		produceConnection.Publish(someTopicProducer.Publisher)
+
+		go produceAMQP(produceConnection)
+	}
 
 	// demo producer
 	go func() {
@@ -57,9 +63,12 @@ func main() {
 	<-ctx.Done()
 }
 
-func consumeAMQP(connection *cony.Client) {
+// consumeAMQP runs the main connection loop for the consuming connection, handles errors and sends
+// the consumed messages to the target handlers of your domain logic.
+func consumeAMQP(connection *amqp.Client) {
 	for connection.Loop() {
 		select {
+
 		// some.topic
 		case msg := <-someTopicConsumer.Consumer.Deliveries():
 			// TODO call subscription handler
@@ -73,7 +82,8 @@ func consumeAMQP(connection *cony.Client) {
 	}
 }
 
-func produceAMQP(connection *cony.Client) {
+// produceAMQP runs the main connection loop for the producing connection and handles errors
+func produceAMQP(connection *amqp.Client) {
 	for connection.Loop() {
 		select {
 		case err := <-connection.Errors():
