@@ -6,8 +6,6 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"time"
 
-	pb "bitbucket.org/jdbergmann/protobuf-go/contact/contact"
-
 	"github.com/go-godin/log"
 
 	"github.com/assembla/cony"
@@ -47,7 +45,7 @@ func main() {
 	go func() {
 		for range time.Tick(1000 * time.Millisecond) {
 			logger.Info("PRODUCE")
-			err := someTopicProducer.Publish(&pb.Contact{Name:"HANS PETER"})
+			err := someTopicProducer.Publish("foo")
 			logger.Info("PRODUCED")
 			if err != nil {
 				logger.Error("FAILED TO PUBLISH", "err", err)
@@ -64,15 +62,7 @@ func consumeAMQP(connection *cony.Client) {
 		select {
 		// some.topic
 		case msg := <-someTopicConsumer.Consumer.Deliveries():
-			evt := &pb.Contact{}
-
-			if err := proto.Unmarshal(msg.Body, evt); err != nil {
-				logger.Error("", "during", "proto.Unmarshal", "err", err)
-				msg.Ack(false) // drop event
-			}
-
-			logger.Info("unmarshalled", "evt", evt)
-
+			// TODO call subscription handler
 			msg.Ack(false)
 		case err := <-someTopicConsumer.Consumer.Errors():
 			logger.Error("consumer error", "err", err, "topic", SomeTopic)
