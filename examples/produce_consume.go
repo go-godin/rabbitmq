@@ -30,7 +30,7 @@ func main() {
 		defer consumeConnection.Close()
 
 		// some.topic
-		someTopicConsumer = rabbitmq.NewConsumer(consumeConnection, SomeExchangeName, ServiceQueueName, SomeTopic)
+		someTopicConsumer = rabbitmq.NewConsumer(consumeConnection, SomeExchangeName, ServiceQueueName, SomeTopic, amqp.Qos(1337))
 		logger.Info(fmt.Sprintf("subscribed to topic '%s'", SomeTopic))
 
 		go consumeAMQP(consumeConnection)
@@ -51,7 +51,7 @@ func main() {
 	go func() {
 		for range time.Tick(1000 * time.Millisecond) {
 			logger.Info("PRODUCE")
-			err := someTopicProducer.Publish("foo")
+			err := someTopicProducer.Publish(struct { }{})
 			logger.Info("PRODUCED")
 			if err != nil {
 				logger.Error("FAILED TO PUBLISH", "err", err)

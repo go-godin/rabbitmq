@@ -38,7 +38,7 @@ func NewConsumer(client *cony.Client, exchangeName string, queueName string, top
 		cony.DeclareBinding(binding),
 	})
 
-	opt = append(opt, cony.Qos(DefaultConsumePrefetchCount), cony.Tag(topic))
+	opt = append(opt, cony.Tag(topic))
 
 	consumer := cony.NewConsumer(queue, opt...)
 	client.Consume(consumer)
