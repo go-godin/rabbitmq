@@ -6,7 +6,11 @@ import (
 
 const DefaultConsumePrefetchCount = 10
 
-func NewConsumer(client *cony.Client, exchangeName string, queueName string, topic string, opt ...cony.ConsumerOpt) *cony.Consumer {
+type Consumer struct {
+	Consumer *cony.Consumer
+}
+
+func NewConsumer(client *cony.Client, exchangeName string, queueName string, topic string, opt ...cony.ConsumerOpt) *Consumer {
 	exchange := cony.Exchange{
 		Name:       exchangeName,
 		Kind:       "topic",
@@ -39,5 +43,5 @@ func NewConsumer(client *cony.Client, exchangeName string, queueName string, top
 	consumer := cony.NewConsumer(queue, opt...)
 	client.Consume(consumer)
 
-	return consumer
+	return &Consumer{Consumer:consumer}
 }

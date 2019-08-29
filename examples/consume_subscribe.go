@@ -17,10 +17,10 @@ import (
 const SomeExchangeName = "example-exchange"
 const ServiceQueueName = "service-name-queue"
 const SomeTopic = "some.topic"
-const DSN = "amqp://guest:guest@localhost"
+const DSN = "amqp://user:pass@host/vhost"
 
 var logger log.Logger
-var someTopicConsumer *cony.Consumer
+var someTopicConsumer *rabbitmq.Consumer
 var someTopicProducer *rabbitmq.Producer
 
 func main() {
@@ -63,7 +63,7 @@ func consumeAMQP(connection *cony.Client) {
 	for connection.Loop() {
 		select {
 		// some.topic
-		case msg := <-someTopicConsumer.Deliveries():
+		case msg := <-someTopicConsumer.Consumer.Deliveries():
 			evt := &pb.Contact{}
 
 			if err := proto.Unmarshal(msg.Body, evt); err != nil {
@@ -74,7 +74,7 @@ func consumeAMQP(connection *cony.Client) {
 			logger.Info("unmarshalled", "evt", evt)
 
 			msg.Ack(false)
-		case err := <-someTopicConsumer.Errors():
+		case err := <-someTopicConsumer.Consumer.Errors():
 			logger.Error("consumer error", "err", err, "topic", SomeTopic)
 
 		case err := <-connection.Errors():
