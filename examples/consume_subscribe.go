@@ -69,15 +69,19 @@ func consumeAMQP(connection *amqp.Client) {
 	for connection.Loop() {
 		select {
 
-		// some.topic
+		// some.topic deliveries
 		case msg := <-someTopicConsumer.Consumer.Deliveries():
 			// TODO call subscription handler
-			msg.Ack(false)
+			_ = msg.Ack(false)
+
+		// some.topic errors
 		case err := <-someTopicConsumer.Consumer.Errors():
 			logger.Error("consumer error", "err", err, "topic", SomeTopic)
 
+		// connection errors
 		case err := <-connection.Errors():
 			logger.Error("AMQP consumer connection error", "err", err)
+			break
 		}
 	}
 }
@@ -86,6 +90,8 @@ func consumeAMQP(connection *amqp.Client) {
 func produceAMQP(connection *amqp.Client) {
 	for connection.Loop() {
 		select {
+
+		// connection errors
 		case err := <-connection.Errors():
 			logger.Error("AMQP producer connection error", "err", err)
 		}
