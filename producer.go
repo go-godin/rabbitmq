@@ -2,7 +2,7 @@ package rabbitmq
 
 import (
 	"github.com/assembla/cony"
-	"github.com/gogo/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 	"github.com/streadway/amqp"
 )
 
