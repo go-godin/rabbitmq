@@ -59,6 +59,7 @@ func NewConsumer(client *cony.Client, exchangeName string, queueName string, rou
 func (c *Consumer) Handle(msg amqp.Delivery) {
 	if msg.RoutingKey != c.RoutingKey {
 		_ = msg.Nack(false, true)
+		return
 	}
 	c.Handler(msg)
 }
