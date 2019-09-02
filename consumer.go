@@ -2,15 +2,18 @@ package rabbitmq
 
 import (
 	"github.com/assembla/cony"
+	"github.com/streadway/amqp"
 )
 
-const DefaultConsumePrefetchCount = 10
+type ConsumeHandler func(delivery amqp.Delivery)
 
 type Consumer struct {
-	Consumer *cony.Consumer
+	Consumer   *cony.Consumer
+	Handler    ConsumeHandler
+	RoutingKey string
 }
 
-func NewConsumer(client *cony.Client, exchangeName string, queueName string, topic string, opt ...cony.ConsumerOpt) *Consumer {
+func NewConsumer(client *cony.Client, exchangeName string, queueName string, routingKey string, handler ConsumeHandler, opt ...cony.ConsumerOpt) *Consumer {
 	exchange := cony.Exchange{
 		Name:       exchangeName,
 		Kind:       "topic",
@@ -29,7 +32,7 @@ func NewConsumer(client *cony.Client, exchangeName string, queueName string, top
 	binding := cony.Binding{
 		Queue:    queue,
 		Exchange: exchange,
-		Key:      topic,
+		Key:      routingKey,
 	}
 
 	client.Declare([]cony.Declaration{
@@ -38,10 +41,24 @@ func NewConsumer(client *cony.Client, exchangeName string, queueName string, top
 		cony.DeclareBinding(binding),
 	})
 
-	opt = append(opt, cony.Tag(topic))
+	opt = append(opt, cony.Tag(routingKey))
 
 	consumer := cony.NewConsumer(queue, opt...)
 	client.Consume(consumer)
 
-	return &Consumer{Consumer:consumer}
+	return &Consumer{
+		Consumer:   consumer,
+		Handler:    handler,
+		RoutingKey: routingKey,
+	}
+}
+
+// FilterAndHandle will filter the passed amqp.Delivery based on the routing key
+// Only the configured routing key is handled, all others are NACKed and requeued.
+// If the delivery has the correct routing key, the handler is called.
+func (c *Consumer) FilterAndHandle(msg amqp.Delivery) {
+	if msg.RoutingKey != c.RoutingKey {
+		_ = msg.Nack(false, true)
+	}
+	c.Handler(msg)
 }
