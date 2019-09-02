@@ -53,10 +53,10 @@ func NewConsumer(client *cony.Client, exchangeName string, queueName string, rou
 	}
 }
 
-// FilterAndHandle will filter the passed amqp.Delivery based on the routing key
+// Handle will filter the passed amqp.Delivery based on the routing key
 // Only the configured routing key is handled, all others are NACKed and requeued.
 // If the delivery has the correct routing key, the handler is called.
-func (c *Consumer) FilterAndHandle(msg amqp.Delivery) {
+func (c *Consumer) Handle(msg amqp.Delivery) {
 	if msg.RoutingKey != c.RoutingKey {
 		_ = msg.Nack(false, true)
 	}
