@@ -10,6 +10,10 @@ type Producer struct {
 	Publisher *cony.Publisher
 }
 
+type Publisher interface {
+	Publish(event interface{}) error
+}
+
 func NewProducer(client *cony.Client, exchangeName string, topic string, opts ...cony.PublisherOpt) *Producer {
 	exchange := cony.Exchange{
 		Name:       exchangeName,
@@ -27,10 +31,10 @@ func NewProducer(client *cony.Client, exchangeName string, topic string, opts ..
 
 	publisher := cony.NewPublisher(exchange.Name, topic, opts...)
 
-	return &Producer{Publisher:publisher}
+	return &Producer{Publisher: publisher}
 }
 
-func (p *Producer) Publish(event interface{}) error  {
+func (p *Producer) Publish(event interface{}) error {
 	protobuf := event.(proto.Message)
 	bodyBytes, err := proto.Marshal(protobuf)
 	if err != nil {
